@@ -1,0 +1,14 @@
+{
+    "name": "evgeniy/openwifi",
+    "description": "openwifi",
+    "authors": [
+        {
+            "name": "Blinov Evgeniy",
+            "email": "eblinov@alvioneurope.ru"
+        }
+    ],
+    "require": {
+        "php"                               : ">=5.4.0",
+        "yiisoft/yii2"                      : "*"
+    }
+}
