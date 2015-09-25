@@ -1,0 +1,4 @@
+#! /bin/bash
+SCRIPT_PATH="$(readlink -m $(dirname $0))"
+
+/usr/bin/env php ./config_generator.php --root="$(dirname $SCRIPT_PATH)"
