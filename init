@@ -24,6 +24,7 @@ $root     = str_replace('\\', '/', __DIR__);
 $envs     = require("$root/environments/index.php");
 $envNames = array_keys($envs);
 $availableParams = [
+    'backup' => 'save current environment before all operations',
     'status' => 'show current environment',
     'help' => 'show usage manual',
     'all'  => 'overwrite all configs',
@@ -33,19 +34,16 @@ $availableParams = [
 if (isset($params['help'])) {
     help(0, $availableParams);
 }
-if (isset($params['status'])) {
-    $constats = [];
-    $fh = fopen("$root/frontend/web/index.php", 'r') or die("Config file not found!");
-    while (!feof($fh)) {
-        $line = fgets($fh, 4096);
-        if (preg_match('~^.*define.*$$~', $line)) {
-            $constats[ ] = $line;
-        }
+
+
+includeConstants("$root/frontend/web/index.php");
+
+if (isset($params['backup'])) {
+    if (defined('YII_ENV')) {
+        saveEnv($root, YII_ENV);
     }
-    fclose($fh);
-
-    eval(implode("\n", $constats));
-
+}
+if (isset($params['status'])) {
     if (defined('YII_ENV')) {
         echo YII_ENV, "\n";
         exit(0);
@@ -108,6 +106,10 @@ foreach ($callbacks as $callback) {
     if (!empty($env[$callback])) {
         $callback($root, $env[$callback]);
     }
+}
+
+if (!isset($params['backup'])) {
+    saveEnv($root, $envName);
 }
 
 echo "\n  ... initialization completed.\n\n";
@@ -255,4 +257,46 @@ EOF;
     }
     echo "\n";
     exit($status);
+}
+
+/**
+ * Include constants
+ *
+ * @param string $path of php file
+ * @return void
+ * @author Evgeniy Blinov <evgeniy_blinov@mail.ru>
+ **/
+function includeConstants($path)
+{
+    if (file_exists($path)) {
+        $constats = [];
+        $fh = fopen($path, 'r') or die("Config file not found!");
+        while (!feof($fh)) {
+            $line = fgets($fh, 4096);
+            if (preg_match('~^.*define.*$$~', $line)) {
+                $constats[ ] = $line;
+            }
+        }
+        fclose($fh);
+
+        eval(implode("\n", $constats));
+    } else {
+        echo "File $path not found!\nTry to run ./init without arguments!\n";
+    }
+}
+
+/**
+ * Save environment
+ *
+ * @param string $root
+ * @param string $env
+ * @return void
+ * @author Evgeniy Blinov <evgeniy_blinov@mail.ru>
+ **/
+function saveEnv($root, $env)
+{
+    echo "\n  Save current environment '$env'...\n\n";
+    $fh = fopen("$root/environment", 'w') or die("Check permissions for $root/environment !");
+    fwrite($fh, $env);
+    fclose($fh);
 }
