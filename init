@@ -21,14 +21,18 @@ if (!extension_loaded('openssl')) {
 
 $params   = getParams();
 $root     = str_replace('\\', '/', __DIR__);
+$module   = !empty($params['module']) ? $params['module'] : 'frontend';
+$index    = !empty($params['index']) ? $params['index'] : null;
 $envs     = require("$root/environments/index.php");
 $envNames = array_keys($envs);
 $availableParams = [
     'backup' => 'save current environment before all operations',
     'status' => 'show current environment',
-    'help' => 'show usage manual',
-    'all'  => 'overwrite all configs',
-    'env'  => $envs,
+    'help'   => 'show usage manual',
+    'all'    => 'overwrite all configs',
+    'module' => 'set default module (default: frontend)',
+    'index'  => 'set index file',
+    'env'    => $envs,
 ];
 
 if (isset($params['help'])) {
@@ -36,7 +40,7 @@ if (isset($params['help'])) {
 }
 
 
-includeConstants("$root/frontend/web/index.php");
+includeConstants(getStartPoint($index));
 
 if (isset($params['backup'])) {
     if (defined('YII_ENV')) {
@@ -283,6 +287,55 @@ function includeConstants($path)
     } else {
         echo "File $path not found!\nTry to run ./init without arguments!\n";
     }
+}
+
+/**
+ * @return string of index file
+ * @author Evgeniy Blinov <evgeniy_blinov@mail.ru>
+ **/
+function getStartPoint($index = null)
+{
+    global $root, $module, $availableParams;
+    if ($index && file_exists($index)) {
+        return $index;
+    }
+    if (file_exists(getModuleIndex($module))) {
+        return getModuleIndex($module);
+    }
+    $appModules = getAppModules($root);
+    foreach ($appModules as $appModule) {
+        $mi = getModuleIndex($appModule);
+        if (file_exists($mi)) {
+            return $mi;
+        }
+    }
+    $indexMsg = "index should be one of:\n                  " . implode(
+        "\n                  ",
+        array_map('getModuleIndex', $appModules)
+    );
+    help(1, array_merge($availableParams, array('index' => $indexMsg)));
+}
+
+/**
+ * @return string of module index file
+ * @author Evgeniy Blinov <evgeniy_blinov@mail.ru>
+ **/
+function getModuleIndex($module, $web = 'web', $index = 'index.php')
+{
+    global $root;
+    return implode(DIRECTORY_SEPARATOR, [$root, $module, $web, $index]);
+}
+
+/**
+ * @param string $root
+ * @return array of application modules
+ * @author Evgeniy Blinov <evgeniy_blinov@mail.ru>
+ **/
+function getAppModules($root)
+{
+    $bs = file_get_contents(implode(DIRECTORY_SEPARATOR, ["$root", 'common', 'config', 'bootstrap.php']));
+    preg_match_all("~Yii\:\:setAlias\(\'([^\']+)\'.*~", $bs, $matches);
+    return !empty($matches[1]) ? $matches[1] : array();
 }
 
 /**
