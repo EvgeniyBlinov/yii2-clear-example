@@ -260,6 +260,7 @@ EOF;
         }
     }
     echo "\n";
+    echo "EXAMPLES:\n./init --env=prod --all --index=./environments/prod/frontend/web/index.php\n\n";
     exit($status);
 }
 
